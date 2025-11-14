@@ -1,0 +1,6 @@
+langdetect-rs
+Copyright (c) 2025 Dmitrii Lopanov
+
+This product includes the langdetect-rs crate by Dmitrii Lopanov.
+When used in publications or products, please attribute:
+“Langdetect port to Rust programming language by Dmitrii Lopanov (https://github.com/LdDl/langdetect-rs)”

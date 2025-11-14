@@ -1,0 +1,171 @@
+use std::fs;
+use std::path::Path;
+use serde::{Deserialize};
+use serde_json;
+use std::collections::HashMap;
+use crate::utils::lang_profile::LangProfile;
+use crate::detector::Detector;
+
+#[derive(Deserialize)]
+struct LangProfileJson {
+    freq: HashMap<String, usize>,
+    n_words: Vec<usize>,
+    name: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum DetectorFactoryError {
+    DuplicatedLanguage(String),
+    NotEnoughProfiles,
+}
+
+impl std::fmt::Display for DetectorFactoryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DetectorFactoryError::DuplicatedLanguage(lang) => {
+                write!(f, "Duplicated language profile: {}", lang)
+            }
+            DetectorFactoryError::NotEnoughProfiles => {
+                write!(f, "Two languages at least are required")
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct DetectorFactory {
+    pub word_lang_prob_map: HashMap<String, Vec<f64>>,
+    pub langlist: Vec<String>,
+    pub seed: Option<u64>,
+}
+
+impl DetectorFactory {
+    pub fn new() -> Self {
+        DetectorFactory {
+            word_lang_prob_map: HashMap::new(),
+            langlist: Vec::new(),
+            seed: None,
+        }
+    }
+
+    /// Create a DetectorFactory with profiles loaded from crate-level profiles folder
+    pub fn default() -> Self {
+        use std::sync::Mutex;
+        use lazy_static::lazy_static;
+        lazy_static! {
+            static ref DEFAULT_FACTORY: Mutex<Option<DetectorFactory>> = Mutex::new(None);
+        }
+        {
+            let factory_guard = DEFAULT_FACTORY.lock().unwrap();
+            if let Some(factory) = &*factory_guard {
+                return factory.clone();
+            }
+        }
+        let mut factory = DetectorFactory::new();
+        // Try to load profiles from crate-level "profiles" folder
+        let crate_profiles = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("profiles");
+
+        println!("Loading profiles from: {:?}", crate_profiles);
+        let entries = std::fs::read_dir(&crate_profiles).unwrap();
+        let count = entries.count();
+        println!("Found {} profile files", count);
+
+        let _ = factory.load_profile(&crate_profiles);
+        // Cache the factory for future use
+        let mut factory_guard = DEFAULT_FACTORY.lock().unwrap();
+        *factory_guard = Some(factory.clone());
+        factory
+    }
+
+    pub fn clear(&mut self) {
+        self.langlist.clear();
+        self.word_lang_prob_map.clear();
+    }
+
+    pub fn set_seed(&mut self, seed: u64) {
+        self.seed = Some(seed);
+    }
+
+    pub fn get_lang_list(&self) -> Vec<String> {
+        self.langlist.clone()
+    }
+
+    pub fn create(&self, alpha: Option<f64>) -> Detector {
+        let mut detector = Detector::new(
+            self.word_lang_prob_map.clone(),
+            self.langlist.clone(),
+            self.seed,
+        );
+        if let Some(a) = alpha {
+            detector.alpha = a;
+        }
+        detector
+    }
+
+    pub fn add_profile(&mut self, profile: LangProfile, index: usize, langsize: usize) -> Result<(), DetectorFactoryError> {
+        let lang = profile.name.clone().unwrap();
+        if self.langlist.contains(&lang) {
+            return Err(DetectorFactoryError::DuplicatedLanguage(lang));
+        }
+        self.langlist.push(lang.clone());
+        for (word, &count) in profile.freq.iter() {
+            if !self.word_lang_prob_map.contains_key(word) {
+                self.word_lang_prob_map.insert(word.clone(), vec![0.0; langsize]);
+            }
+            let length = word.chars().count();
+            if length >= 1 && length <= 3 {
+                let prob = count as f64 / profile.n_words[length - 1] as f64;
+                if let Some(vec) = self.word_lang_prob_map.get_mut(word) {
+                    vec[index] = prob;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn load_json_profile(&mut self, json_profiles: &[&str]) -> Result<(), DetectorFactoryError> {
+        let langsize = json_profiles.len();
+        if langsize < 2 {
+            return Err(DetectorFactoryError::NotEnoughProfiles);
+        }
+        let mut index = 0;
+        for json_profile in json_profiles {
+            let json_data: LangProfileJson = serde_json::from_str(json_profile)
+                .map_err(|_| DetectorFactoryError::NotEnoughProfiles)?;
+            let profile = LangProfile {
+                name: Some(json_data.name),
+                freq: json_data.freq,
+                n_words: {
+                    let mut arr = [0; 3];
+                    for (i, v) in json_data.n_words.iter().enumerate().take(3) {
+                        arr[i] = *v;
+                    }
+                    arr
+                },
+            };
+            self.add_profile(profile, index, langsize)?;
+            index += 1;
+        }
+        Ok(())
+    }
+
+    /// Load all language profiles from a directory of JSON files
+    pub fn load_profile<P: AsRef<Path>>(&mut self, profile_directory: P) -> Result<(), String> {
+        let dir = profile_directory.as_ref();
+        let entries = fs::read_dir(dir).map_err(|e| format!("Failed to read profile directory: {}", e))?;
+        let mut json_profiles = Vec::new();
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
+            let path = entry.path();
+            if path.is_file() {
+                let content = fs::read_to_string(&path)
+                    .map_err(|e| format!("Failed to read file {:?}: {}", path, e))?;
+                json_profiles.push(content);
+            }
+        }
+        let json_refs: Vec<&str> = json_profiles.iter().map(|s| s.as_str()).collect();
+        self.load_json_profile(&json_refs)
+            .map_err(|e| format!("Failed to parse JSON profiles: {:?}", e))?;
+        Ok(())
+    }
+}
