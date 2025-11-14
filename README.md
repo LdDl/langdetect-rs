@@ -8,6 +8,7 @@ W.I.P.
 - Allow to add new languages
 - Comprehensive documentation for developers
 - Threadsafe API (do we need it though?)
+- Publish to crates.io
 
 ## Installation
 
