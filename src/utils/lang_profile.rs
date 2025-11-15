@@ -27,6 +27,29 @@ impl LangProfile {
         }
     }
 
+    pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self, std::io::Error> {
+        use std::fs;
+        use serde::Deserialize;
+        #[derive(Deserialize)]
+        struct LangProfileJson {
+            freq: HashMap<String, usize>,
+            n_words: Vec<usize>,
+            name: String,
+        }
+        let content = fs::read_to_string(path)?;
+        let json: LangProfileJson = serde_json::from_str(&content)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+        let mut arr = [0; NGram::N_GRAM];
+        for (i, v) in json.n_words.iter().enumerate().take(NGram::N_GRAM) {
+            arr[i] = *v;
+        }
+        Ok(LangProfile {
+            name: Some(json.name),
+            freq: json.freq,
+            n_words: arr,
+        })
+    }
+
     pub fn add(&mut self, gram: &str) {
         if self.name.is_none() || gram.is_empty() {
             return;

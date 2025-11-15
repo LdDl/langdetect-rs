@@ -97,7 +97,6 @@ impl Detector {
         }
     }
 
-
     pub fn detect(&mut self) -> Result<String, DetectorError> {
         let probabilities = self.get_probabilities()?;
         if !probabilities.is_empty() {
@@ -107,14 +106,12 @@ impl Detector {
         }
     }
 
-
     pub fn get_probabilities(&mut self) -> Result<Vec<Language>, DetectorError> {
         if self.langprob.is_none() {
             self.detect_block()?;
         }
         Ok(self.sort_probability(self.langprob.as_ref().unwrap()))
     }
-
 
     fn detect_block(&mut self) -> Result<(), DetectorError> {
         self.cleaning_text();
