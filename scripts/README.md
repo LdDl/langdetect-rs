@@ -8,6 +8,15 @@ cd scripts
 Script to scrape Wikipedia articles and generating profile has been taken from this repository:
 https://github.com/fedelopez77/langdetect
 
+## Table of Contents
+
+- [Setting up Python virtual environment](#setting-up-python-virtual-environment)
+- [Install dependencies](#install-dependencies)
+- [Prepare dataset from Wikipedia articles](#prepare-dataset-from-wikipedia-articles)
+- [Generate language profile](#generate-language-profile)
+- [Usage in langdetect-rs](#usage-in-langdetect-rs)
+
+
 ## Setting up Python virtual environment
 
 ```sh
@@ -115,3 +124,11 @@ Run the script:
 ```sh
 python generate_profiles.py
 ```
+
+## Usage in langdetect-rs
+
+You can now use the generated profiles in langdetect-rs by loading them via `DetectorBuilder`.
+
+You may refer to the main [README.md](../README.md) for more details on how to use custom profiles in langdetect-rs.
+
+You may refer to [this particular example](../examples/extend_default/main.rs) to see how to extend default profiles with generated ones.
