@@ -230,6 +230,7 @@ match factory_with_seed.detect("your text", None) {
 - How to add language to existing `DetectorFactory` (either default initialized or custom)?
     - The way [add_profile](src/detector_factory.rs#L273-L303) works makes it is not possible to add new language profiles to the factory unless you know the final size of languages array in advance. E.g. you initialized custom factory with 5 languages, and now you want to add 2 more - you need to provide `langsize` parameter as 7 when adding EACH new profile. Failing to do so will result in error.
     - So it is needed to initialize the factory with all desired languages at once. In case if you want to add more languages to the default factory, you can create a new custom factory and add all default profiles from [profiles](./profiles/) folder plus your new ones.
+    - **Helper function**: Use `DetectorFactory::get_default_profiles_path()` to get the path to the default language profile files. This is useful when you want to load default profiles manually for extending the factory.
 - For extending default profiles with your own generated ones, you may refer to [this particular example](./examples/extend_default/main.rs) and the section below in this document.
 
 ## How to train for new language?

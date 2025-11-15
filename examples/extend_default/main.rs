@@ -1,11 +1,10 @@
 use langdetect_rs::detector_factory::DetectorFactory;
 use langdetect_rs::utils::lang_profile::{LangProfileJson, LangProfile};
-use std::hash::Hash;
 use std::path::Path;
 
 fn main() {
     // Load language profiles from the crate's profiles directory
-    let profiles_dir = Path::new("./").join("profiles");
+    let profiles_dir = DetectorFactory::get_default_profiles_path();
 
     println!("Read all default JSON profiles from {}", profiles_dir.display());
 

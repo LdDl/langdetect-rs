@@ -122,6 +122,41 @@ impl DetectorFactory {
         DetectorFactoryBuilder { factory }
     }
 
+    /// Returns the path to the default language profiles directory.
+    ///
+    /// This method provides the path to the built-in language profile files that ship
+    /// with the crate. End-users can use this path to load default profiles when
+    /// extending or customizing the factory.
+    ///
+    /// Note: This path is only accessible when the crate is used as a source dependency
+    /// or when running from the crate's directory. When used as a published dependency,
+    /// the profiles may not be available as filesystem files.
+    ///
+    /// # Returns
+    /// A PathBuf pointing to the default profiles directory.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    /// use langdetect_rs::utils::lang_profile::{LangProfileJson, LangProfile};
+    ///
+    /// // Get path to default profiles
+    /// let profiles_path = DetectorFactory::get_default_profiles_path();
+    /// println!("Default profiles are located at: {:?}", profiles_path);
+    ///
+    /// // Load a specific profile
+    /// let en_profile = LangProfileJson::new_from_file(profiles_path.join("en")).unwrap();
+    /// let profile = LangProfile::from_json(en_profile).unwrap();
+    ///
+    /// // Add to custom factory
+    /// let mut factory = DetectorFactory::new().build();
+    /// factory.add_profile(profile, 0, 1).unwrap();
+    /// ```
+    pub fn get_default_profiles_path() -> std::path::PathBuf {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("profiles")
+    }
+
     /// Clears all loaded language profiles and mappings.
     pub fn clear(&mut self) {
         self.langlist.clear();
