@@ -39,7 +39,7 @@ impl std::fmt::Display for DetectorError {
 /// ```rust
 /// use langdetect_rs::detector_factory::DetectorFactory;
 ///
-/// let factory = DetectorFactory::default();
+/// let factory = DetectorFactory::default().build();
 /// let mut detector = factory.create(None);
 /// detector.append("Hello world!");
 /// let language = detector.detect().unwrap();
@@ -117,7 +117,7 @@ impl Detector {
     /// ```rust
     /// use langdetect_rs::detector_factory::DetectorFactory;
     ///
-    /// let factory = DetectorFactory::default();
+    /// let factory = DetectorFactory::default().build();
     /// let mut detector = factory.create(None);
     /// detector.append("Hello world!");
     /// ```
@@ -178,7 +178,7 @@ impl Detector {
     /// ```rust
     /// use langdetect_rs::detector_factory::DetectorFactory;
     ///
-    /// let factory = DetectorFactory::default();
+    /// let factory = DetectorFactory::default().build();
     /// let mut detector = factory.create(None);
     /// detector.append("Bonjour le monde!");
     /// let language = detector.detect().unwrap();
@@ -208,7 +208,7 @@ impl Detector {
     /// ```rust
     /// use langdetect_rs::detector_factory::DetectorFactory;
     ///
-    /// let factory = DetectorFactory::default();
+    /// let factory = DetectorFactory::default().build();
     /// let mut detector = factory.create(None);
     /// detector.append("Hello world!");
     /// let probabilities = detector.get_probabilities().unwrap();

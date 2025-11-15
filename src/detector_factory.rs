@@ -40,7 +40,7 @@ impl std::fmt::Display for DetectorFactoryError {
 /// use langdetect_rs::detector_factory::DetectorFactory;
 ///
 /// // Create factory with built-in profiles
-/// let factory = DetectorFactory::default();
+/// let factory = DetectorFactory::default().build();
 ///
 /// // Create a detector
 /// let detector = factory.create(None);
@@ -276,7 +276,7 @@ impl DetectorFactory {
     /// ```rust
     /// use langdetect_rs::detector_factory::DetectorFactory;
     ///
-    /// let factory = DetectorFactory::default();
+    /// let factory = DetectorFactory::default().build();
     /// let result = factory.detect("Hello world!", None);
     /// ```
     pub fn detect(&self, text: &str, alpha: Option<f64>) -> Result<String, DetectorError> {
@@ -299,7 +299,7 @@ impl DetectorFactory {
     /// ```rust
     /// use langdetect_rs::detector_factory::DetectorFactory;
     ///
-    /// let factory = DetectorFactory::default();
+    /// let factory = DetectorFactory::default().build();
     /// let result = factory.get_probabilities("Hello world!", None);
     /// ```
     pub fn get_probabilities(&self, text: &str, alpha: Option<f64>) -> Result<Vec<Language>, DetectorError> {

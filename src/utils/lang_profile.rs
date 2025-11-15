@@ -1,6 +1,18 @@
+use std::fs;
 use std::collections::HashMap;
+use std::path::Path;
 use crate::utils::ngram::NGram;
 use serde::{Deserialize};
+use serde_json;
+
+/// Errors that can occur when working with LangProfileJson.
+#[derive(Debug, Clone)]
+pub enum LangProfileJsonError {
+    /// Input/Output error.
+    IoError(String),
+    /// JSON parsing error.
+    ParseError(String),
+}
 
 /// JSON representation of a language profile loaded from disk.
 #[derive(Deserialize)]
@@ -11,6 +23,38 @@ pub struct LangProfileJson {
     pub n_words: Vec<usize>,
     /// Language identifier (ISO 639-1 code).
     pub name: String,
+}
+
+impl LangProfileJson {
+    /// Loads a LangProfileJson from a file.
+    ///     
+    /// # Arguments
+    /// * `file_path` - Path to the JSON file containing the language profile.
+    /// 
+    /// # Returns
+    /// A Result containing the LangProfileJson or a LangProfileJsonError.
+    /// 
+    /// # Errors
+    /// Returns `LangProfileJsonError` if reading or parsing fails.
+    /// 
+    /// # Examples
+    /// ```
+    /// use langdetect_rs::utils::lang_profile::LangProfileJson;
+    /// use std::path::Path;
+    /// let profile_json = LangProfileJson::new_from_file(Path::new("./profiles/en"));
+    ///
+    /// match profile_json {
+    ///    Ok(json) => println!("Loaded profile for language: {}", json.name),
+    ///    Err(e) => println!("Error loading profile: {:?}", e),
+    /// }
+    /// ```
+    pub fn new_from_file<P: AsRef<Path>>(file_path: P) -> Result<LangProfileJson, LangProfileJsonError> {
+        let content = fs::read_to_string(file_path)
+            .map_err(|e| LangProfileJsonError::IoError(format!("Failed to read file: {}", e)))?;
+        let json_profile: LangProfileJson = serde_json::from_str(&content)
+            .map_err(|e| LangProfileJsonError::ParseError(format!("Failed to parse JSON: {}", e)))?;
+        Ok(json_profile)
+    }
 }
 
 /// Language profile which stores name, frequency map and counts of n-grams lengths.
