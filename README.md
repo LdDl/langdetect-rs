@@ -220,10 +220,13 @@ Language detection algorithm is non-deterministic, which means that if you try t
 To enforce consistent results, set the seed on the detector before detection:
 
 ```rust
-let mut detector = factory.create(None);
-detector.seed = Some(42); // Any u64 value
-detector.append("your text");
-println!("Detected language: {}", detector.detect());
+let factory_with_seed = DetectorFactory::default()
+    .with_seed(Some(43))
+    .build();
+match factory_with_seed.detect("your text", None) {
+    Ok(lang) => println!("Detected language: {}", lang),
+    Err(e) => println!("Detection error: {:?}", e),
+}
 ```
 
 ## How to Add a New Language?
