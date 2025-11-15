@@ -6,8 +6,10 @@ use crate::language::Language;
 use crate::utils::ngram::NGram;
 use std::collections::HashMap;
 
+/// Errors that can occur during language detection.
 #[derive(Debug, Clone)]
 pub enum DetectorError {
+    /// No detectable features found in the input text.
     NoFeatures,
 }
 
@@ -19,28 +21,74 @@ impl std::fmt::Display for DetectorError {
     }
 }
 
+/// Core language detection engine.
+///
+/// The Detector performs the actual language identification using n-gram analysis
+/// and Bayesian probability estimation. It uses an iterative expectation-maximization
+/// algorithm to determine the most likely language for a given text.
+///
+/// # Algorithm Overview
+///
+/// 1. Extract n-grams (1-3 characters) from the input text
+/// 2. Look up probabilities for each n-gram across all languages
+/// 3. Use iterative EM algorithm to estimate language probabilities
+/// 4. Return the language with highest probability
+///
+/// # Examples
+///
+/// ```rust
+/// use langdetect_rs::detector_factory::DetectorFactory;
+///
+/// let factory = DetectorFactory::default();
+/// let mut detector = factory.create(None);
+/// detector.append("Hello world!");
+/// let language = detector.detect().unwrap();
+/// ```
 pub struct Detector {
+    /// Word-to-language probability mapping.
     pub word_lang_prob_map: HashMap<String, Vec<f64>>,
+    /// List of language identifiers.
     pub langlist: Vec<String>,
+    /// Optional seed for reproducible randomization.
     pub seed: Option<u64>,
+    /// Accumulated text for analysis.
     pub text: String,
+    /// Current language probability estimates.
     pub langprob: Option<Vec<f64>>,
+    /// Alpha smoothing parameter for probability estimation.
     pub alpha: f64,
+    /// Number of trials for the EM algorithm.
     pub n_trial: usize,
+    /// Maximum text length to process.
     pub max_text_length: usize,
+    /// Prior probabilities for languages (optional).
     pub prior_map: Option<Vec<f64>>,
+    /// Whether to enable verbose logging.
     pub verbose: bool,
 }
 
 impl Detector {
+    /// Default alpha smoothing parameter.
     pub const ALPHA_DEFAULT: f64 = 0.5;
+    /// Width of alpha variation during randomization.
     pub const ALPHA_WIDTH: f64 = 0.05;
+    /// Maximum iterations for the EM algorithm.
     pub const ITERATION_LIMIT: usize = 1000;
+    /// Minimum probability threshold for reporting languages.
     pub const PROB_THRESHOLD: f64 = 0.1;
+    /// Convergence threshold for the EM algorithm.
     pub const CONV_THRESHOLD: f64 = 0.99999;
+    /// Base frequency for probability calculations.
     pub const BASE_FREQ: f64 = 10000.0;
+    /// Language identifier for unknown/undetected languages.
     pub const UNKNOWN_LANG: &'static str = "unknown";
 
+    /// Creates a new Detector with the given language profiles.
+    ///
+    /// # Arguments
+    /// * `word_lang_prob_map` - Pre-computed word-to-language probability mapping.
+    /// * `langlist` - List of language identifiers.
+    /// * `seed` - Optional seed for reproducible randomization.
     pub fn new(word_lang_prob_map: HashMap<String, Vec<f64>>, langlist: Vec<String>, seed: Option<u64>) -> Self {
         Detector {
             word_lang_prob_map,
@@ -56,6 +104,23 @@ impl Detector {
         }
     }
 
+    /// Appends text to the detector for analysis.
+    ///
+    /// The text is preprocessed to remove URLs, emails, and normalize whitespace.
+    /// Vietnamese text is also normalized for better detection.
+    ///
+    /// # Arguments
+    /// * `text` - The text to append for language detection.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    ///
+    /// let factory = DetectorFactory::default();
+    /// let mut detector = factory.create(None);
+    /// detector.append("Hello world!");
+    /// ```
     pub fn append(&mut self, text: &str) {
         // Remove URLs and emails (simple regex)
         let url_re = regex::Regex::new(r"https?://[-_.?&~;+=/#0-9A-Za-z]{1,2076}").unwrap();
@@ -72,6 +137,9 @@ impl Detector {
         }
     }
 
+    /// Cleans the text by removing Latin characters if they are outnumbered by non-Latin characters.
+    ///
+    /// This helps improve detection accuracy for texts that mix scripts.
     fn cleaning_text(&mut self) {
         let mut latin_count = 0;
         let mut non_latin_count = 0;
@@ -97,6 +165,25 @@ impl Detector {
         }
     }
 
+    /// Performs language detection on the accumulated text.
+    ///
+    /// # Returns
+    /// The detected language code, or "unknown" if detection fails.
+    ///
+    /// # Errors
+    /// Returns `DetectorError::NoFeatures` if no detectable n-grams are found.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    ///
+    /// let factory = DetectorFactory::default();
+    /// let mut detector = factory.create(None);
+    /// detector.append("Bonjour le monde!");
+    /// let language = detector.detect().unwrap();
+    /// assert_eq!(language, "fr");
+    /// ```
     pub fn detect(&mut self) -> Result<String, DetectorError> {
         let probabilities = self.get_probabilities()?;
         if !probabilities.is_empty() {
@@ -106,6 +193,29 @@ impl Detector {
         }
     }
 
+    /// Gets detailed language probabilities for the accumulated text.
+    ///
+    /// Returns all languages with probability above the threshold, sorted by probability descending.
+    ///
+    /// # Returns
+    /// A vector of `Language` structs with language codes and probabilities.
+    ///
+    /// # Errors
+    /// Returns `DetectorError::NoFeatures` if no detectable n-grams are found.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    ///
+    /// let factory = DetectorFactory::default();
+    /// let mut detector = factory.create(None);
+    /// detector.append("Hello world!");
+    /// let probabilities = detector.get_probabilities().unwrap();
+    /// for lang in probabilities {
+    ///     println!("{}: {:.3}", lang.lang.unwrap_or_default(), lang.prob);
+    /// }
+    /// ```
     pub fn get_probabilities(&mut self) -> Result<Vec<Language>, DetectorError> {
         if self.langprob.is_none() {
             self.detect_block()?;
@@ -113,6 +223,12 @@ impl Detector {
         Ok(self.sort_probability(self.langprob.as_ref().unwrap()))
     }
 
+    /// Runs the core detection algorithm on the accumulated text.
+    ///
+    /// This method implements the expectation-maximization algorithm for language detection.
+    ///
+    /// # Returns
+    /// Ok(()) on successful detection, or an error if no features are found.
     fn detect_block(&mut self) -> Result<(), DetectorError> {
         self.cleaning_text();
         let ngrams = self.extract_ngrams();
@@ -148,6 +264,9 @@ impl Detector {
         Ok(())
     }
 
+    /// Initializes probability estimates for the EM algorithm.
+    ///
+    /// Uses prior probabilities if available, otherwise uniform distribution.
     fn init_probability(&self) -> Vec<f64> {
         if let Some(ref prior) = self.prior_map {
             prior.clone()
@@ -156,6 +275,9 @@ impl Detector {
         }
     }
 
+    /// Extracts n-grams from the text for language detection.
+    ///
+    /// Only includes n-grams that exist in the language profiles.
     fn extract_ngrams(&self) -> Vec<String> {
         let range = 1..=NGram::N_GRAM;
         let mut result = Vec::new();
@@ -178,6 +300,15 @@ impl Detector {
         result
     }
 
+    /// Updates language probabilities based on an n-gram observation.
+    ///
+    /// # Arguments
+    /// * `prob` - Current probability estimates (modified in-place).
+    /// * `word` - The n-gram to use for updating.
+    /// * `alpha` - Smoothing parameter.
+    ///
+    /// # Returns
+    /// true if the n-gram was found in profiles, false otherwise.
     fn update_lang_prob(&self, prob: &mut [f64], word: &str, alpha: f64) -> bool {
         if !self.word_lang_prob_map.contains_key(word) {
             return false;
@@ -190,6 +321,13 @@ impl Detector {
         true
     }
 
+    /// Normalizes probability estimates and returns the maximum probability.
+    ///
+    /// # Arguments
+    /// * `prob` - Probability vector to normalize (modified in-place).
+    ///
+    /// # Returns
+    /// The maximum probability value after normalization.
     fn normalize_prob(&self, prob: &mut [f64]) -> f64 {
         let sump: f64 = prob.iter().sum();
         let mut maxp = 0.0;
@@ -202,6 +340,15 @@ impl Detector {
         maxp
     }
 
+    /// Converts probability estimates to a sorted list of Language structs.
+    ///
+    /// Only includes languages with probability above the threshold.
+    ///
+    /// # Arguments
+    /// * `prob` - Raw probability estimates.
+    ///
+    /// # Returns
+    /// Sorted vector of Language structs.
     fn sort_probability(&self, prob: &[f64]) -> Vec<Language> {
         let mut result: Vec<Language> = self.langlist.iter().zip(prob.iter())
             .filter(|(_, p)| **p > Self::PROB_THRESHOLD)
@@ -213,7 +360,6 @@ impl Detector {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::detector_factory::DetectorFactory;
     use crate::utils::lang_profile::LangProfile;
 
