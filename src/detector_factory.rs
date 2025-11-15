@@ -1,22 +1,18 @@
 use std::fs;
 use std::path::Path;
-use serde::{Deserialize};
 use serde_json;
 use std::collections::HashMap;
 use crate::utils::lang_profile::LangProfile;
 use crate::detector::{Detector, DetectorError};
 use crate::language::Language;
+use crate::utils::lang_profile::LangProfileJson;
 
-#[derive(Deserialize)]
-pub struct LangProfileJson {
-    pub freq: HashMap<String, usize>,
-    pub n_words: Vec<usize>,
-    pub name: String,
-}
-
+/// Errors that can occur when working with DetectorFactory.
 #[derive(Debug, Clone)]
 pub enum DetectorFactoryError {
+    /// Attempted to add a language profile that already exists.
     DuplicatedLanguage(String),
+    /// At least 2 languages are required for detection.
     NotEnoughProfiles,
 }
 
@@ -33,15 +29,46 @@ impl std::fmt::Display for DetectorFactoryError {
     }
 }
 
+/// Factory for creating language detectors with pre-loaded language profiles.
+///
+/// The DetectorFactory manages a collection of language profiles and provides
+/// methods to create Detector instances for language identification.
+///
+/// # Examples
+///
+/// ```rust
+/// use langdetect_rs::detector_factory::DetectorFactory;
+///
+/// // Create factory with built-in profiles
+/// let factory = DetectorFactory::default();
+///
+/// // Create a detector
+/// let detector = factory.create(None);
+/// ```
 #[derive(Clone)]
 pub struct DetectorFactory {
+    /// Word-to-language probability mapping for all loaded languages.
     pub word_lang_prob_map: HashMap<String, Vec<f64>>,
+    /// List of language identifiers in the same order as probability vectors.
     pub langlist: Vec<String>,
+    /// Optional seed for reproducible randomization.
     pub seed: Option<u64>,
 }
 
 impl DetectorFactory {
-    /// Use `.build()` after preparing all needed options to obtain the `DetectorFactory`.
+    /// Creates a new DetectorFactory builder.
+    ///
+    /// Use the builder pattern to configure the factory before calling `build()`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    ///
+    /// let factory = DetectorFactory::new()
+    ///     .with_seed(Some(42))
+    ///     .build();
+    /// ```
     pub fn new() -> DetectorFactoryBuilder {
         DetectorFactoryBuilder {
             factory: DetectorFactory {
@@ -52,7 +79,18 @@ impl DetectorFactory {
         }
     }
 
-    /// Create a DetectorFactory with profiles loaded from crate-level profiles folder
+    /// Creates a DetectorFactory with all built-in language profiles loaded.
+    ///
+    /// This method loads the 55 built-in language profiles from the crate's
+    /// profiles directory. The profiles are cached for performance.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    ///
+    /// let factory = DetectorFactory::default();
+    /// ```
     pub fn default() -> Self {
         use std::sync::Mutex;
         use lazy_static::lazy_static;
@@ -81,19 +119,35 @@ impl DetectorFactory {
         factory
     }
 
+    /// Clears all loaded language profiles and mappings.
     pub fn clear(&mut self) {
         self.langlist.clear();
         self.word_lang_prob_map.clear();
     }
 
+    /// Sets the randomization seed for reproducible results.
+    ///
+    /// # Arguments
+    /// * `seed` - The seed value to use for randomization.
     pub fn set_seed(&mut self, seed: u64) {
         self.seed = Some(seed);
     }
 
+    /// Returns a list of all loaded language identifiers.
+    ///
+    /// # Returns
+    /// A vector of language codes (ISO 639-1) in the order they were loaded.
     pub fn get_lang_list(&self) -> Vec<String> {
         self.langlist.clone()
     }
 
+    /// Creates a new Detector instance with the current profiles.
+    ///
+    /// # Arguments
+    /// * `alpha` - Optional alpha smoothing parameter (default: 0.5).
+    ///
+    /// # Returns
+    /// A configured Detector ready for language detection.
     pub fn create(&self, alpha: Option<f64>) -> Detector {
         let mut detector = Detector::new(
             self.word_lang_prob_map.clone(),
@@ -106,6 +160,14 @@ impl DetectorFactory {
         detector
     }
 
+    /// Overrides an existing language profile at the specified index.
+    ///
+    /// This is an internal method used during profile loading.
+    ///
+    /// # Arguments
+    /// * `profile` - The language profile to add.
+    /// * `index` - The index in the language list.
+    /// * `langsize` - Total number of languages.
     pub fn override_profile(&mut self, profile: LangProfile, index: usize, langsize: usize) -> Result<(), DetectorFactoryError> {
         let lang = profile.name.clone().unwrap();
         self.langlist.push(lang.clone());
@@ -124,6 +186,15 @@ impl DetectorFactory {
         Ok(())
     }
 
+    /// Adds a new language profile to the factory.
+    ///
+    /// # Arguments
+    /// * `profile` - The language profile to add.
+    /// * `index` - The index position for this language.
+    /// * `langsize` - Total number of languages in the profile set.
+    ///
+    /// # Errors
+    /// Returns `DetectorFactoryError::DuplicatedLanguage` if the language already exists.
     pub fn add_profile(&mut self, profile: LangProfile, index: usize, langsize: usize) -> Result<(), DetectorFactoryError> {
         let lang = profile.name.clone().unwrap();
         if self.langlist.contains(&lang) {
@@ -132,6 +203,13 @@ impl DetectorFactory {
         self.override_profile(profile, index, langsize)
     }
 
+    /// Removes a language profile from the factory.
+    ///
+    /// # Arguments
+    /// * `lang` - The language code to remove.
+    ///
+    /// # Errors
+    /// Returns `DetectorFactoryError::DuplicatedLanguage` if the language doesn't exist.
     pub fn delete_profile(&mut self, lang: &str) -> Result<(), DetectorFactoryError> {
         let pos = self.langlist.iter().position(|l| l == lang);
         if let Some(index) = pos {
@@ -148,6 +226,13 @@ impl DetectorFactory {
         }
     }
 
+    /// Loads language profiles from JSON strings.
+    ///
+    /// # Arguments
+    /// * `json_profiles` - Array of JSON strings representing language profiles.
+    ///
+    /// # Errors
+    /// Returns `DetectorFactoryError::NotEnoughProfiles` if fewer than 2 profiles provided.
     pub fn load_json_profile(&mut self, json_profiles: &[&str]) -> Result<(), DetectorFactoryError> {
         let langsize = json_profiles.len();
         if langsize < 2 {
@@ -174,21 +259,68 @@ impl DetectorFactory {
         Ok(())
     }
 
-    /// Shortcut method
+    /// Shortcut method to detect language from text in one call.
+    ///
+    /// # Arguments
+    /// * `text` - The text to analyze.
+    /// * `alpha` - Optional alpha smoothing parameter.
+    ///
+    /// # Returns
+    /// The detected language code or an error.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    ///
+    /// let factory = DetectorFactory::default();
+    /// let result = factory.detect("Hello world!", None);
+    /// ```
     pub fn detect(&self, text: &str, alpha: Option<f64>) -> Result<String, DetectorError> {
         let mut detector = self.create(alpha);
         detector.append(text);
         detector.detect()
     }
 
-    /// Shortcut method
+    /// Shortcut method to get language probabilities from text in one call.
+    ///
+    /// # Arguments
+    /// * `text` - The text to analyze.
+    /// * `alpha` - Optional alpha smoothing parameter.
+    ///
+    /// # Returns
+    /// A vector of languages with their probabilities, sorted by probability descending.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    ///
+    /// let factory = DetectorFactory::default();
+    /// let result = factory.get_probabilities("Hello world!", None);
+    /// ```
     pub fn get_probabilities(&self, text: &str, alpha: Option<f64>) -> Result<Vec<Language>, DetectorError> {
         let mut detector = self.create(alpha);
         detector.append(text);
         detector.get_probabilities()
     }
 
-    /// Load all language profiles from a directory of JSON files
+    /// Loads all language profiles from a directory of JSON files.
+    ///
+    /// # Arguments
+    /// * `profile_directory` - Path to directory containing JSON profile files.
+    ///
+    /// # Returns
+    /// Ok(()) on success, or an error string on failure.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    ///
+    /// let mut factory = DetectorFactory::new().build();
+    /// factory.load_profile("profiles/").unwrap();
+    /// ```
     pub fn load_profile<P: AsRef<Path>>(&mut self, profile_directory: P) -> Result<(), String> {
         let dir = profile_directory.as_ref();
         let entries = fs::read_dir(dir).map_err(|e| format!("Failed to read profile directory: {}", e))?;
@@ -210,6 +342,20 @@ impl DetectorFactory {
 }
 
 /// Builder for `DetectorFactory` with fluent setters.
+///
+/// Provides a convenient way to configure a DetectorFactory before building it.
+///
+/// # Examples
+///
+/// ```rust
+/// use langdetect_rs::detector_factory::DetectorFactory;
+/// use std::collections::HashMap;
+///
+/// let factory = DetectorFactory::new()
+///     .with_langlist(vec!["en".to_string(), "fr".to_string()])
+///     .with_seed(Some(42))
+///     .build();
+/// ```
 pub struct DetectorFactoryBuilder {
     factory: DetectorFactory,
 }
