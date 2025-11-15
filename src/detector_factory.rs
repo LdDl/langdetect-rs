@@ -7,10 +7,10 @@ use crate::utils::lang_profile::LangProfile;
 use crate::detector::Detector;
 
 #[derive(Deserialize)]
-struct LangProfileJson {
-    freq: HashMap<String, usize>,
-    n_words: Vec<usize>,
-    name: String,
+pub struct LangProfileJson {
+    pub freq: HashMap<String, usize>,
+    pub n_words: Vec<usize>,
+    pub name: String,
 }
 
 #[derive(Debug, Clone)]

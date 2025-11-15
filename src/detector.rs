@@ -220,7 +220,7 @@ mod tests {
     fn setup_factory() -> DetectorFactory {
         let mut factory = DetectorFactory::new();
 
-        let mut profile_en = LangProfile::with_name("en");
+        let mut profile_en = LangProfile::new().with_name("en").build();
         for w in ["a", "a", "a", "b", "b", "c", "c", "d", "e"].iter() {
             profile_en.add(w);
         }
@@ -228,7 +228,7 @@ mod tests {
         assert!(result.is_ok(), "Unexpected error in add_profile: {:?}", result);
         result.unwrap();
 
-        let mut profile_fr = LangProfile::with_name("fr");
+        let mut profile_fr = LangProfile::new().with_name("fr").build();
         for w in ["a", "b", "b", "c", "c", "c", "d", "d", "d"].iter() {
             profile_fr.add(w);
         }
@@ -236,7 +236,7 @@ mod tests {
         assert!(result.is_ok(), "Unexpected error in add_profile: {:?}", result);
         result.unwrap();
 
-        let mut profile_ja = LangProfile::with_name("ja");
+        let mut profile_ja = LangProfile::new().with_name("ja").build();
         for w in ["\u{3042}", "\u{3042}", "\u{3042}", "\u{3044}", "\u{3046}", "\u{3048}", "\u{3048}"].iter() {
             profile_ja.add(w);
         }

@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use crate::utils::ngram::NGram;
+use crate::detector_factory::LangProfileJson;
 
+/// Language profile which stores name, frequency map and counts of n-grams lengths.
 pub struct LangProfile {
     pub name: Option<String>,
     pub freq: HashMap<String, usize>,
@@ -11,35 +13,22 @@ impl LangProfile {
     pub const MINIMUM_FREQ: usize = 2;
     pub const LESS_FREQ_RATIO: usize = 100_000;
 
-    pub fn new() -> Self {
-        LangProfile {
-            name: None,
-            freq: HashMap::new(),
-            n_words: [0; NGram::N_GRAM],
+    /// Use `.build()` after preparing all needed options to obtain the `LangProfile`.
+    pub fn new() -> LangProfileBuilder {
+        LangProfileBuilder {
+            profile: LangProfile {
+                name: None,
+                freq: HashMap::new(),
+                n_words: [0usize; NGram::N_GRAM],
+            },
         }
     }
 
-    pub fn with_name(name: &str) -> Self {
-        LangProfile {
-            name: Some(name.to_string()),
-            freq: HashMap::new(),
-            n_words: [0; NGram::N_GRAM],
+    pub fn from_json(json: LangProfileJson) -> Result<Self, &'static str> {
+        let mut arr: [usize; NGram::N_GRAM] = [0usize; NGram::N_GRAM];
+        if json.n_words.len() != NGram::N_GRAM {
+            return Err("Invalid n_words length");
         }
-    }
-
-    pub fn from_file<P: AsRef<std::path::Path>>(path: P) -> Result<Self, std::io::Error> {
-        use std::fs;
-        use serde::Deserialize;
-        #[derive(Deserialize)]
-        struct LangProfileJson {
-            freq: HashMap<String, usize>,
-            n_words: Vec<usize>,
-            name: String,
-        }
-        let content = fs::read_to_string(path)?;
-        let json: LangProfileJson = serde_json::from_str(&content)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-        let mut arr = [0; NGram::N_GRAM];
         for (i, v) in json.n_words.iter().enumerate().take(NGram::N_GRAM) {
             arr[i] = *v;
         }
@@ -114,25 +103,54 @@ impl LangProfile {
     }
 }
 
+/// Builder for `LangProfile` with fluent setters.
+pub struct LangProfileBuilder {
+    profile: LangProfile,
+}
+
+impl LangProfileBuilder {
+    /// Set profile name.
+    pub fn with_name(mut self, name: &str) -> Self {
+        self.profile.name = Some(name.to_string());
+        self
+    }
+
+    /// Set the frequency map directly.
+    pub fn with_freq(mut self, freq: HashMap<String, usize>) -> Self {
+        self.profile.freq = freq;
+        self
+    }
+
+    /// Set the n_words counts array directly.
+    pub fn with_n_words(mut self, n_words: [usize; NGram::N_GRAM]) -> Self {
+        self.profile.n_words = n_words;
+        self
+    }
+
+    pub fn build(self) -> LangProfile {
+        self.profile
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_lang_profile() {
-        let profile = LangProfile::new();
+        let profile = LangProfile::new().build();
         assert!(profile.name.is_none());
     }
 
     #[test]
     fn test_lang_profile_string_int() {
-        let profile = LangProfile::with_name("en");
+        let profile = LangProfile::new().with_name("en").build();
         assert_eq!(profile.name.as_deref(), Some("en"));
     }
 
     #[test]
     fn test_add() {
-        let mut profile = LangProfile::with_name("en");
+        let mut profile = LangProfile::new().with_name("en").build();
         profile.add("a");
         assert_eq!(profile.freq.get("a"), Some(&1));
         profile.add("a");
@@ -142,14 +160,14 @@ mod tests {
 
     #[test]
     fn test_add_illegally1() {
-        let mut profile = LangProfile::new();
+        let mut profile = LangProfile::new().build();
         profile.add("a"); // ignore
         assert_eq!(profile.freq.get("a"), None); // ignored
     }
 
     #[test]
     fn test_add_illegally2() {
-        let mut profile = LangProfile::with_name("en");
+        let mut profile = LangProfile::new().with_name("en").build();
         profile.add("a");
         // Illegal (string's length of parameter must be between 1 and 3) but ignore
         profile.add("");
@@ -164,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_omit_less_freq() {
-        let mut profile = LangProfile::with_name("en");
+        let mut profile = LangProfile::new().with_name("en").build();
         let grams = vec![
             "a", "b", "c", "\u{3042}", "\u{3044}", "\u{3046}", "\u{3048}", "\u{304a}",
             "\u{304b}", "\u{304c}", "\u{304d}", "\u{304e}", "\u{304f}"
@@ -188,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_omit_less_freq_illegally() {
-        let mut profile = LangProfile::new();
+        let mut profile = LangProfile::new().build();
         // ignore
         profile.omit_less_freq();
     }
