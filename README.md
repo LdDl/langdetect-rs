@@ -17,6 +17,8 @@ W.I.P.
     - [All examples:](#all-examples)
     - [Using default detector](#using-default-detector)
     - [Custom detection factory](#custom-detection-factory)
+- [Language detection reproducibility](#language-detection-reproducibility)
+- [Adding new languages](#adding-new-languages)
 - [How to train for new language?](#how-to-train-for-new-language)
 - [Original project](#original-project)
 
@@ -208,12 +210,7 @@ cargo run --example custom_profile
     }
     ```
 
-### Adding new languages
-- How to add language to existing `DetectorFactory` (either default initialized or custom)?
-    - The way [add_profile](src/detector_factory.rs#L273-L303) works makes it is not possible to add new language profiles to the factory unless you know the final size of languages array in advance. E.g. you initialized custom factory with 5 languages, and now you want to add 2 more - you need to provide `langsize` parameter as 7 when adding EACH new profile. Failing to do so will result in error.
-    - So it is needed to initialize the factory with all desired languages at once. In case if you want to add more languages to the default factory, you can create a new custom factory and add all default profiles from [profiles](./profiles/) folder plus your new ones.
-
-**NOTE**
+## Language detection reproducibility
 
 Language detection algorithm is non-deterministic, which means that if you try to run it on a text which is either too short or too ambiguous, you might get different results every time you run it.
 
@@ -229,13 +226,22 @@ match factory_with_seed.detect("your text", None) {
 }
 ```
 
+### Adding new languages
+- How to add language to existing `DetectorFactory` (either default initialized or custom)?
+    - The way [add_profile](src/detector_factory.rs#L273-L303) works makes it is not possible to add new language profiles to the factory unless you know the final size of languages array in advance. E.g. you initialized custom factory with 5 languages, and now you want to add 2 more - you need to provide `langsize` parameter as 7 when adding EACH new profile. Failing to do so will result in error.
+    - So it is needed to initialize the factory with all desired languages at once. In case if you want to add more languages to the default factory, you can create a new custom factory and add all default profiles from [profiles](./profiles/) folder plus your new ones.
+    - **Helper function**: Use `DetectorFactory::get_default_profiles_path()` to get the path to the default language profile files. This is useful when you want to load default profiles manually for extending the factory.
+- For extending default profiles with your own generated ones, you may refer to [this particular example](./examples/extend_default/main.rs) and the section below in this document.
+
 ## How to train for new language?
 
-This work in progress.
+To add a new language, you need to create a language profile for it.
 
-Initially I will take an idea from original Python library: https://github.com/Mimino666/langdetect?tab=readme-ov-file#how-to-add-new-language
+Check [scripts/README.md](./scripts/README.md) to get instructions on scraping data for profile generation using the [scrap_wiki.py](./scripts/scrap_wiki.py) script located in the `scripts` folder and then generating the profile via [generate_profiles.py](./scripts/generate_profiles.py) script
 
-And then I will try it to simplify the process.
+Initially an idea has been take from original Python library: https://github.com/Mimino666/langdetect?tab=readme-ov-file#how-to-add-new-language. Little bit of searching around the web gave me [this repository](https://github.com/fedelopez77/langdetect) on which the scripts are based.
+
+Note: scripts are in Python. Therefore your way may vary and you could implement similar functionality e.g. in Rust or any other tool of your choice. The main purpose of this section is to give you a hint where to start from.
 
 ## Original project
 

@@ -1,1 +1,5 @@
 /target
+scripts/.venv
+scripts/.venv-langdetect
+scripts/datasets/downloads
+scripts/datasets/generated
