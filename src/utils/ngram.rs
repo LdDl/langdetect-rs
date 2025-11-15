@@ -3,8 +3,15 @@ use crate::utils::messages;
 
 use std::collections::HashMap;
 
+/// N-gram processor for extracting character sequences from text.
+///
+/// The NGram struct maintains a sliding window of characters and provides
+/// methods for extracting n-grams of various lengths (1-3 characters).
+/// It handles character normalization and script-specific processing.
 pub struct NGram {
+    /// Current sequence of characters in the sliding window.
     pub grams: String,
+    /// Whether the current sequence contains capital words (used for filtering).
     pub capitalword: bool,
 }
 
@@ -154,7 +161,18 @@ lazy_static::lazy_static! {
 }
 
 impl NGram {
-    /// Vietnamese normalization: converts combining diacritics to precomposed characters
+    /// Maximum n-gram length supported.
+    pub const N_GRAM: usize = 3;
+
+    /// Normalizes Vietnamese text by converting combining diacritics to precomposed characters.
+    ///
+    /// This improves language detection accuracy for Vietnamese text.
+    ///
+    /// # Arguments
+    /// * `input` - The Vietnamese text to normalize.
+    ///
+    /// # Returns
+    /// Normalized text with precomposed characters.
     pub fn normalize_vi(input: &str) -> String {
         // Load normalization tables from messages.properties
         let bases = messages::get_string("TO_NORMALIZE_VI_CHARS");
@@ -192,8 +210,10 @@ impl NGram {
         }
         result
     }
-    pub const N_GRAM: usize = 3;
 
+    /// Creates a new NGram processor.
+    ///
+    /// Initializes with a space character and capitalword set to false.
     pub fn new() -> Self {
         NGram {
             grams: " ".to_string(),
@@ -201,6 +221,13 @@ impl NGram {
         }
     }
 
+    /// Adds a character to the n-gram sliding window.
+    ///
+    /// The character is normalized and the window is maintained at maximum N_GRAM length.
+    /// Capital word detection is updated also.
+    ///
+    /// # Arguments
+    /// * `ch` - The character to add.
     pub fn add_char(&mut self, ch: char) {
         let ch = Self::normalize(ch);
         let last_char = self.grams.chars().last().unwrap_or(' ');
@@ -224,6 +251,16 @@ impl NGram {
         }
     }
 
+    /// Extracts an n-gram of the specified length from the current window.
+    ///
+    /// Returns None if the requested length is invalid or if the current
+    /// sequence contains capital words (which are filtered out).
+    ///
+    /// # Arguments
+    /// * `n` - The length of n-gram to extract (1-3).
+    ///
+    /// # Returns
+    /// The n-gram string or None if not available.
     pub fn get(&self, n: usize) -> Option<String> {
         if self.capitalword {
             return None;
@@ -243,6 +280,16 @@ impl NGram {
         }
     }
 
+    /// Normalizes a character for n-gram processing.
+    ///
+    /// Handles different Unicode blocks and scripts, converting them to
+    /// canonical representations for consistent n-gram extraction.
+    ///
+    /// # Arguments
+    /// * `ch` - The character to normalize.
+    ///
+    /// # Returns
+    /// The normalized character.
     pub fn normalize(ch: char) -> char {
         let block = unicode_block(ch).unwrap_or(0);
         match block {
