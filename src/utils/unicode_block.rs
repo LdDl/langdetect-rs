@@ -445,6 +445,16 @@ pub const UNICODE_BLOCKS: &[(u16, u32, u32)] = &[
 ];
 
 // Returns the Unicode block constant for a character, or None if not found
+///
+/// This function performs a binary search on the Unicode block ranges
+/// to determine which block a character belongs to.
+///
+/// # Arguments
+/// * `ch` - The character to classify.
+///
+/// # Returns
+/// The Unicode block constant (e.g., UNICODE_BASIC_LATIN) or None if the
+/// character doesn't belong to any defined block.
 pub fn unicode_block(ch: char) -> Option<u16> {
     let cp = ch as u32;
     if cp <= 0x7F {
