@@ -28,4 +28,13 @@ fn main() {
         Ok(probs) => println!("Language probabilities with seed: {:?}", probs),
         Err(e) => println!("Detection error: {:?}", e),
     }
+
+    // Or you can set the seed for the factory itself and it will be inherited by detectors
+    let mut factory_with_seed = DetectorFactory::default();
+    factory_with_seed.seed = Some(43);
+    match factory_with_seed.get_probabilities("Otec matka syn.", None) {
+        Ok(probs) => println!("Language probabilities with seed: {:?}", probs),
+        Err(e) => println!("Detection error: {:?}", e),
+    }
+
 }
