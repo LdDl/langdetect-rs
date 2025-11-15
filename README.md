@@ -8,6 +8,18 @@ W.I.P.
 - Benchmarking in term of speed (via hyperfine?)
 - Threadsafe API (do we need it though?)
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Supported Rust Versions](#supported-rust-versions)
+- [Languages](#languages)
+- [Example](#example)
+    - [All examples:](#all-examples)
+    - [Using default detector](#using-default-detector)
+    - [Custom detection factory](#custom-detection-factory)
+- [How to Add a New Language?](#how-to-add-a-new-language)
+- [Original project](#original-project)
+
 ## Installation
 
 Add to your `Cargo.toml`:
@@ -37,13 +49,14 @@ Tested on Rust 1.91.0 (`rustc 1.91.0 (f8297e351 2025-10-28)`)
 
 ## Example
 
-You can run the included example:
+### All examples:
 
 ```sh
 cargo run --example simple
+cargo run --example custom_profile
 ```
 
-
+### Using default detector
 - Simple good-to-go example code in [examples/simple/main.rs](examples/simple/main.rs):
 
     ```rust
@@ -89,6 +102,7 @@ cargo run --example simple
     }
     ```
 
+### Custom detection factory
 - Defining `DetectorFactory` from scratch for specific languages - [./examples/custom_profile/main.rs](examples/custom_profile/main.rs)
 
     ```rust
@@ -194,6 +208,7 @@ cargo run --example simple
     }
     ```
 
+### Adding new languages
 - How to add language to existing `DetectorFactory` (either default initialized or custom)?
     - The way [add_profile](src/detector_factory.rs#L273-L303) works makes it is not possible to add new language profiles to the factory unless you know the final size of languages array in advance. E.g. you initialized custom factory with 5 languages, and now you want to add 2 more - you need to provide `langsize` parameter as 7 when adding EACH new profile. Failing to do so will result in error.
     - So it is needed to initialize the factory with all desired languages at once. In case if you want to add more languages to the default factory, you can create a new custom factory and add all default profiles from [profiles](./profiles/) folder plus your new ones.
