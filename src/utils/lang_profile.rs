@@ -1,6 +1,17 @@
 use std::collections::HashMap;
 use crate::utils::ngram::NGram;
-use crate::detector_factory::LangProfileJson;
+use serde::{Deserialize};
+
+/// JSON representation of a language profile loaded from disk.
+#[derive(Deserialize)]
+pub struct LangProfileJson {
+    /// Frequency map of n-grams to their counts.
+    pub freq: HashMap<String, usize>,
+    /// Total counts for each n-gram length: [1-gram, 2-gram, 3-gram].
+    pub n_words: Vec<usize>,
+    /// Language identifier (ISO 639-1 code).
+    pub name: String,
+}
 
 /// Language profile which stores name, frequency map and counts of n-grams lengths.
 ///
