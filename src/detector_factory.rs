@@ -4,7 +4,8 @@ use serde::{Deserialize};
 use serde_json;
 use std::collections::HashMap;
 use crate::utils::lang_profile::LangProfile;
-use crate::detector::Detector;
+use crate::detector::{Detector, DetectorError};
+use crate::language::Language;
 
 #[derive(Deserialize)]
 pub struct LangProfileJson {
@@ -40,11 +41,14 @@ pub struct DetectorFactory {
 }
 
 impl DetectorFactory {
-    pub fn new() -> Self {
-        DetectorFactory {
-            word_lang_prob_map: HashMap::new(),
-            langlist: Vec::new(),
-            seed: None,
+    /// Use `.build()` after preparing all needed options to obtain the `DetectorFactory`.
+    pub fn new() -> DetectorFactoryBuilder {
+        DetectorFactoryBuilder {
+            factory: DetectorFactory {
+                word_lang_prob_map: HashMap::new(),
+                langlist: Vec::new(),
+                seed: None,
+            },
         }
     }
 
@@ -61,7 +65,7 @@ impl DetectorFactory {
                 return factory.clone();
             }
         }
-        let mut factory = DetectorFactory::new();
+        let mut factory = DetectorFactory::new().build();
         // Try to load profiles from crate-level "profiles" folder
         let crate_profiles = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("profiles");
 
@@ -170,6 +174,20 @@ impl DetectorFactory {
         Ok(())
     }
 
+    /// Shortcut method
+    pub fn detect(&self, text: &str, alpha: Option<f64>) -> Result<String, DetectorError> {
+        let mut detector = self.create(alpha);
+        detector.append(text);
+        detector.detect()
+    }
+
+    /// Shortcut method
+    pub fn get_probabilities(&self, text: &str, alpha: Option<f64>) -> Result<Vec<Language>, DetectorError> {
+        let mut detector = self.create(alpha);
+        detector.append(text);
+        detector.get_probabilities()
+    }
+
     /// Load all language profiles from a directory of JSON files
     pub fn load_profile<P: AsRef<Path>>(&mut self, profile_directory: P) -> Result<(), String> {
         let dir = profile_directory.as_ref();
@@ -188,5 +206,74 @@ impl DetectorFactory {
         self.load_json_profile(&json_refs)
             .map_err(|e| format!("Failed to parse JSON profiles: {:?}", e))?;
         Ok(())
+    }
+}
+
+/// Builder for `DetectorFactory` with fluent setters.
+pub struct DetectorFactoryBuilder {
+    factory: DetectorFactory,
+}
+
+impl DetectorFactoryBuilder {
+    /// Set the word language probability map.
+    ///
+    /// # Arguments
+    /// * `word_lang_prob_map` - A HashMap of word to language probabilities.
+    ///
+    /// # Example
+    /// ```
+    /// use std::collections::HashMap;
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    /// let mut word_lang_prob_map = HashMap::new();
+    /// word_lang_prob_map.insert("hello".to_string(), vec![0.5, 0.3]);
+    /// let builder = DetectorFactory::new().with_word_lang_prob_map(word_lang_prob_map);
+    /// ```
+    pub fn with_word_lang_prob_map(mut self, word_lang_prob_map: HashMap<String, Vec<f64>>) -> Self {
+        self.factory.word_lang_prob_map = word_lang_prob_map;
+        self
+    }
+
+    /// Set the language list.
+    ///
+    /// # Arguments
+    /// * `langlist` - A vector of language names.
+    ///
+    /// # Example
+    /// ```
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    /// let builder = DetectorFactory::new().with_langlist(vec!["en".to_string(), "fr".to_string()]);
+    /// ```
+    pub fn with_langlist(mut self, langlist: Vec<String>) -> Self {
+        self.factory.langlist = langlist;
+        self
+    }
+
+    /// Set the seed for randomization.
+    ///
+    /// # Arguments
+    /// * `seed` - An optional u64 seed value.
+    ///
+    /// # Example
+    /// ```
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    /// let builder = DetectorFactory::new().with_seed(Some(42));
+    /// ```
+    pub fn with_seed(mut self, seed: Option<u64>) -> Self {
+        self.factory.seed = seed;
+        self
+    }
+
+    /// Builds the final `DetectorFactory` object with the configured properties.
+    ///
+    /// # Returns
+    /// The fully constructed `DetectorFactory` object.
+    ///
+    /// # Example
+    /// ```
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    /// let factory = DetectorFactory::new().with_seed(Some(123)).build();
+    /// ```
+    pub fn build(self) -> DetectorFactory {
+        self.factory
     }
 }

@@ -218,7 +218,7 @@ mod tests {
     use crate::utils::lang_profile::LangProfile;
 
     fn setup_factory() -> DetectorFactory {
-        let mut factory = DetectorFactory::new();
+        let mut factory = DetectorFactory::new().build();
 
         let mut profile_en = LangProfile::new().with_name("en").build();
         for w in ["a", "a", "a", "b", "b", "c", "c", "d", "e"].iter() {
@@ -303,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_factory_from_json_string() {
-        let mut factory = DetectorFactory::new();
+        let mut factory = DetectorFactory::new().build();
         factory.clear();
         let json_lang1 = "{\"freq\":{\"A\":3,\"B\":6,\"C\":3,\"AB\":2,\"BC\":1,\"ABC\":2,\"BBC\":1,\"CBA\":1},\"n_words\":[12,3,4],\"name\":\"lang1\"}";
         let json_lang2 = "{\"freq\":{\"A\":6,\"B\":3,\"C\":3,\"AA\":3,\"AB\":2,\"ABC\":1,\"ABA\":1,\"CAA\":1},\"n_words\":[12,5,3],\"name\":\"lang2\"}";
