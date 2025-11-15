@@ -17,7 +17,7 @@ W.I.P.
     - [All examples:](#all-examples)
     - [Using default detector](#using-default-detector)
     - [Custom detection factory](#custom-detection-factory)
-- [How to Add a New Language?](#how-to-add-a-new-language)
+- [How to train for new Language?](#how-to-train-for-new-language)
 - [Original project](#original-project)
 
 ## Installation
@@ -229,14 +229,13 @@ match factory_with_seed.detect("your text", None) {
 }
 ```
 
-## How to Add a New Language?
+## How to train for new Language?
 
 This work in progress.
 
 Initially I will take an idea from original Python library: https://github.com/Mimino666/langdetect?tab=readme-ov-file#how-to-add-new-language
 
 And then I will try it to simplify the process.
-
 
 ## Original project
 
