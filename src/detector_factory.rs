@@ -79,19 +79,22 @@ impl DetectorFactory {
         }
     }
 
-    /// Creates a DetectorFactory with all built-in language profiles loaded.
+    /// Creates a DetectorFactoryBuilder with all built-in language profiles loaded.
     ///
     /// This method loads the 55 built-in language profiles from the crate's
-    /// profiles directory. The profiles are cached for performance.
+    /// profiles directory and returns a builder that can be further configured.
+    /// The profiles are cached for performance.
     ///
     /// # Example
     ///
     /// ```rust
     /// use langdetect_rs::detector_factory::DetectorFactory;
     ///
-    /// let factory = DetectorFactory::default();
+    /// let factory = DetectorFactory::default()
+    ///     .with_seed(Some(42))
+    ///     .build();
     /// ```
-    pub fn default() -> Self {
+    pub fn default() -> DetectorFactoryBuilder {
         use std::sync::Mutex;
         use lazy_static::lazy_static;
         lazy_static! {
@@ -100,7 +103,7 @@ impl DetectorFactory {
         {
             let factory_guard = DEFAULT_FACTORY.lock().unwrap();
             if let Some(factory) = &*factory_guard {
-                return factory.clone();
+                return DetectorFactoryBuilder { factory: factory.clone() };
             }
         }
         let mut factory = DetectorFactory::new().build();
@@ -116,7 +119,7 @@ impl DetectorFactory {
         // Cache the factory for future use
         let mut factory_guard = DEFAULT_FACTORY.lock().unwrap();
         *factory_guard = Some(factory.clone());
-        factory
+        DetectorFactoryBuilder { factory }
     }
 
     /// Clears all loaded language profiles and mappings.
