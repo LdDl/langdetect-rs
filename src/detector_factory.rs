@@ -102,11 +102,8 @@ impl DetectorFactory {
         detector
     }
 
-    pub fn add_profile(&mut self, profile: LangProfile, index: usize, langsize: usize) -> Result<(), DetectorFactoryError> {
+    pub fn override_profile(&mut self, profile: LangProfile, index: usize, langsize: usize) -> Result<(), DetectorFactoryError> {
         let lang = profile.name.clone().unwrap();
-        if self.langlist.contains(&lang) {
-            return Err(DetectorFactoryError::DuplicatedLanguage(lang));
-        }
         self.langlist.push(lang.clone());
         for (word, &count) in profile.freq.iter() {
             if !self.word_lang_prob_map.contains_key(word) {
@@ -121,6 +118,30 @@ impl DetectorFactory {
             }
         }
         Ok(())
+    }
+
+    pub fn add_profile(&mut self, profile: LangProfile, index: usize, langsize: usize) -> Result<(), DetectorFactoryError> {
+        let lang = profile.name.clone().unwrap();
+        if self.langlist.contains(&lang) {
+            return Err(DetectorFactoryError::DuplicatedLanguage(lang));
+        }
+        self.override_profile(profile, index, langsize)
+    }
+
+    pub fn delete_profile(&mut self, lang: &str) -> Result<(), DetectorFactoryError> {
+        let pos = self.langlist.iter().position(|l| l == lang);
+        if let Some(index) = pos {
+            self.langlist.remove(index);
+            // Remove the language's probabilities from word_lang_prob_map
+            for vec in self.word_lang_prob_map.values_mut() {
+                if vec.len() > index {
+                    vec.remove(index);
+                }
+            }
+            Ok(())
+        } else {
+            Err(DetectorFactoryError::DuplicatedLanguage(lang.to_string()))
+        }
     }
 
     pub fn load_json_profile(&mut self, json_profiles: &[&str]) -> Result<(), DetectorFactoryError> {
