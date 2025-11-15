@@ -64,3 +64,54 @@ datasets/
             1-other_language.txt
             ...
 ```
+
+## Generate language profile
+
+Tune the [generate_profiles.py.py](./generate_profiles.py.py) to fit your needs:
+
+```python
+LANGUAGES = {
+    "ISO CODE": "path to dataset folder containing txt files"
+}
+# e.g.
+# LANGUAGES = {
+#     "sah": "./datasets/downloads/sah/"
+# }
+
+# Output directory for generated profiles
+output_dir = "./datasets/generated"
+
+# Suffix for generated profile files
+files_suffix = "_generated"
+# For this given example files would be named `ISOCODE_generated.json`
+```
+
+Important notes:
+- Make sure requested language dataset folders exist and contain text files.
+- Make sure dataset directory looks like this:
+    ```
+    path/
+        to/
+            dataset/
+                language_code/
+                    0-language_code.txt
+                    1-language_code.txt
+                    ...
+                other_language_code/
+                    0-other_language_code.txt
+                    1-other_language_code.txt
+                    ...
+    ```
+- Output directory will be created if it does not exist.
+- Output directory will look like this after running the script:
+    ```
+    datasets/
+        generated/
+            sah.json
+            other_language_code.json
+    ```
+
+Run the script:
+```sh
+python generate_profiles.py
+```

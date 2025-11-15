@@ -3,16 +3,20 @@
 import os
 import wikipedia
 
+# Language codes and names
+# ISO 639-1/ISO 639-3 codes are used in this example
 LANGUAGES = {
     # "uz": "Uzbek",
     # "tg": "Tajik",
     # "az": "Azerbaijani",
-    "sah": "Sakha"
+    "sah": "Sakha" # 3-letter code because Yakut is not represented in ISO 639-1
 }
 
-MAX_SIZE_OF_ARTICLES = 50000  # in KB (reduced for testing)
-MAX_ARTICLES = 200  # Maximum number of articles to scrape per language
-
+# Maximum size of articles to scrape (in kB)
+MAX_SIZE_OF_ARTICLES = 50000
+# Maximum number of articles to scrape per language
+MAX_ARTICLES = 200
+# Output directory for downloaded articles
 output_dir = "./datasets/downloads/"
 os.makedirs(output_dir, exist_ok=True)
 
