@@ -82,7 +82,7 @@ impl DetectorFactory {
     /// Creates a DetectorFactoryBuilder with all built-in language profiles loaded.
     ///
     /// This method loads the 55 built-in language profiles from the crate's
-    /// profiles directory and returns a builder that can be further configured.
+    /// profiles directory and returns a builder that can be further re-configured.
     /// The profiles are cached for performance.
     ///
     /// # Example
