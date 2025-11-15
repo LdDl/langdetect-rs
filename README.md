@@ -231,11 +231,13 @@ match factory_with_seed.detect("your text", None) {
 
 ## How to train for new language?
 
-This work in progress.
+To add a new language, you need to create a language profile for it.
 
-Initially I will take an idea from original Python library: https://github.com/Mimino666/langdetect?tab=readme-ov-file#how-to-add-new-language
+Check [scripts/README.md](./scripts/README.md) to get instructions on scraping data for profile generation using the [scrap_wiki.py](./scripts/scrap_wiki.py) script located in the `scripts` folder and then generating the profile via [generate_profile.py](./scripts/generate_profile.py) script
 
-And then I will try it to simplify the process.
+Initially an idea has been take from original Python library: https://github.com/Mimino666/langdetect?tab=readme-ov-file#how-to-add-new-language. Little bit of searching around the web gave me [this repository](https://github.com/fedelopez77/langdetect) on which the scripts are based.
+
+Note: scripts are in Python. Therefore your way may vary and you could implement similar functionality e.g. in Rust or any other tool of your choice.
 
 ## Original project
 
