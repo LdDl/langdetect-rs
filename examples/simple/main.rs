@@ -37,5 +37,4 @@ fn main() {
         Ok(probs) => println!("Language probabilities with seed: {:?}", probs),
         Err(e) => println!("Detection error: {:?}", e),
     }
-
 }

@@ -51,7 +51,7 @@ Example code (`examples/simple/main.rs`):
 use langdetect_rs::detector_factory::DetectorFactory;
 
 fn main() {
-    let factory = DetectorFactory::default();
+    let factory = DetectorFactory::default().build();
 
     // let mut detector = factory.create(None);
     match factory.detect("War doesn't show who's right, just who's left.", None) {
@@ -75,6 +75,15 @@ fn main() {
     detector.seed = Some(42);
     detector.append("Otec matka syn.");
     match detector.get_probabilities() {
+        Ok(probs) => println!("Language probabilities with seed: {:?}", probs),
+        Err(e) => println!("Detection error: {:?}", e),
+    }
+
+    // Or you can set the seed for the factory itself and it will be inherited by detectors
+    let factory_with_seed = DetectorFactory::default()
+        .with_seed(Some(43))
+        .build();
+    match factory_with_seed.get_probabilities("Otec matka syn.", None) {
         Ok(probs) => println!("Language probabilities with seed: {:?}", probs),
         Err(e) => println!("Detection error: {:?}", e),
     }
