@@ -17,7 +17,7 @@ W.I.P.
     - [All examples:](#all-examples)
     - [Using default detector](#using-default-detector)
     - [Custom detection factory](#custom-detection-factory)
-- [How to train for new Language?](#how-to-train-for-new-language)
+- [How to train for new language?](#how-to-train-for-new-language)
 - [Original project](#original-project)
 
 ## Installation
@@ -229,7 +229,7 @@ match factory_with_seed.detect("your text", None) {
 }
 ```
 
-## How to train for new Language?
+## How to train for new language?
 
 This work in progress.
 
