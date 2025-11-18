@@ -110,11 +110,6 @@ impl DetectorFactory {
         // Try to load profiles from crate-level "profiles" folder
         let crate_profiles = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("profiles");
 
-        println!("Loading profiles from: {:?}", crate_profiles);
-        let entries = std::fs::read_dir(&crate_profiles).unwrap();
-        let count = entries.count();
-        println!("Found {} profile files", count);
-
         let _ = factory.load_profile(&crate_profiles);
         // Cache the factory for future use
         let mut factory_guard = DEFAULT_FACTORY.lock().unwrap();

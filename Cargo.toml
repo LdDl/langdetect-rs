@@ -1,6 +1,6 @@
 [package]
 name = "langdetect-rs"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2024"
 description = "Language detection in Rust. Port of Mimino666's langdetect."
 license = "Apache-2.0"
