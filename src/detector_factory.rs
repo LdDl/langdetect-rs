@@ -81,9 +81,9 @@ impl DetectorFactory {
 
     /// Creates a DetectorFactoryBuilder with all built-in language profiles loaded.
     ///
-    /// This method loads the 55 built-in language profiles from the crate's
-    /// profiles directory and returns a builder that can be further re-configured.
-    /// The profiles are cached for performance.
+    /// This method loads 56 language profiles, including Uzbek (uz), embedded at
+    /// compile time. No profile files are required at runtime. The factory is
+    /// initialized once and each call returns an independent clone.
     ///
     /// # Example
     ///
@@ -95,37 +95,43 @@ impl DetectorFactory {
     ///     .build();
     /// ```
     pub fn default() -> DetectorFactoryBuilder {
-        use std::sync::Mutex;
-        use lazy_static::lazy_static;
-        lazy_static! {
-            static ref DEFAULT_FACTORY: Mutex<Option<DetectorFactory>> = Mutex::new(None);
-        }
-        {
-            let factory_guard = DEFAULT_FACTORY.lock().unwrap();
-            if let Some(factory) = &*factory_guard {
-                return DetectorFactoryBuilder { factory: factory.clone() };
-            }
-        }
-        let mut factory = DetectorFactory::new().build();
-        // Try to load profiles from crate-level "profiles" folder
-        let crate_profiles = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("profiles");
+        use std::sync::LazyLock;
 
-        let _ = factory.load_profile(&crate_profiles);
-        // Cache the factory for future use
-        let mut factory_guard = DEFAULT_FACTORY.lock().unwrap();
-        *factory_guard = Some(factory.clone());
-        DetectorFactoryBuilder { factory }
+        static DEFAULT_FACTORY: LazyLock<DetectorFactory> = LazyLock::new(|| {
+            let mut factory = DetectorFactory::new().build();
+            factory.load_json_profile(DetectorFactory::get_default_profiles_json())
+                .expect("embedded default language profiles must be valid");
+            factory
+        });
+        DetectorFactoryBuilder { factory: DEFAULT_FACTORY.clone() }
+    }
+
+    /// Returns the 56 embedded default profiles as JSON strings in fixed order.
+    ///
+    /// Use these strings to build a custom factory with additional profiles,
+    /// without reading the crate's source directory at runtime. Pass all profiles
+    /// to load_json_profile together so probability vectors have the final size.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use langdetect_rs::detector_factory::DetectorFactory;
+    ///
+    /// let profiles = DetectorFactory::get_default_profiles_json();
+    /// let mut factory = DetectorFactory::new().build();
+    /// factory.load_json_profile(profiles).unwrap();
+    /// assert_eq!(factory.get_lang_list().len(), 56);
+    /// ```
+    pub fn get_default_profiles_json() -> &'static [&'static str] {
+        crate::default_profiles::PROFILES
     }
 
     /// Returns the path to the default language profiles directory.
     ///
-    /// This method provides the path to the built-in language profile files that ship
-    /// with the crate. End-users can use this path to load default profiles when
-    /// extending or customizing the factory.
-    ///
-    /// Note: This path is only accessible when the crate is used as a source dependency
-    /// or when running from the crate's directory. When used as a published dependency,
-    /// the profiles may not be available as filesystem files.
+    /// This compatibility helper points to the source directory used during
+    /// compilation. That directory may not exist on the deployment machine.
+    /// Prefer get_default_profiles_json for access to embedded profiles.
+    /// DetectorFactory::default does not use this filesystem path.
     ///
     /// # Returns
     /// A PathBuf pointing to the default profiles directory.

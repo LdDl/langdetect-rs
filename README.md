@@ -41,12 +41,14 @@ Tested on Rust 1.91.0 (`rustc 1.91.0 (f8297e351 2025-10-28)`)
 
 ## Languages
 
-`langdetect-rs` supports 55 languages out of the box ([ISO 639-1 codes](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)):
+`langdetect-rs` supports 56 languages out of the box ([ISO 639-1 codes](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)):
 
     af, ar, bg, bn, ca, cs, cy, da, de, el, en, es, et, fa, fi, fr, gu, he,
     hi, hr, hu, id, it, ja, kn, ko, lt, lv, mk, ml, mr, ne, nl, no, pa, pl,
-    pt, ro, ru, sk, sl, so, sq, sv, sw, ta, te, th, tl, tr, uk, ur, vi, zh-cn,
+    pt, ro, ru, sk, sl, so, sq, sv, sw, ta, te, th, tl, tr, uk, ur, uz, vi, zh-cn,
     zh-tw
+
+Uzbek (`uz`) is included in the default set of languages, but it is not part of the original Java implementation. It was added by me manually
 
 
 ## Example
@@ -229,8 +231,8 @@ match factory_with_seed.detect("your text", None) {
 ### Adding new languages
 - How to add language to existing `DetectorFactory` (either default initialized or custom)?
     - The way [add_profile](src/detector_factory.rs#L273-L303) works makes it is not possible to add new language profiles to the factory unless you know the final size of languages array in advance. E.g. you initialized custom factory with 5 languages, and now you want to add 2 more - you need to provide `langsize` parameter as 7 when adding EACH new profile. Failing to do so will result in error.
-    - So it is needed to initialize the factory with all desired languages at once. In case if you want to add more languages to the default factory, you can create a new custom factory and add all default profiles from [profiles](./profiles/) folder plus your new ones.
-    - **Helper function**: Use `DetectorFactory::get_default_profiles_path()` to get the path to the default language profile files. This is useful when you want to load default profiles manually for extending the factory.
+    - Initialize the factory with all desired languages at once. To extend the default set, collect `DetectorFactory::get_default_profiles_json().to_vec()`, append your custom JSON profiles, and pass the complete list to `load_json_profile()`.
+    - `get_default_profiles_json()` provides the embedded profiles without filesystem access. The older `get_default_profiles_path()` helper only returns a build-time source path, which may not exist on the deployment machine.
 - For extending default profiles with your own generated ones, you may refer to [this particular example](./examples/extend_default/main.rs) and the section below in this document.
 
 ## How to train for new language?

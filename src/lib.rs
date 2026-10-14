@@ -4,11 +4,11 @@
 //! A Rust port of the Python langdetect library - <https://github.com/Mimino666/langdetect>, which is itself a port of the Java language-detection library.
 //!
 //! This crate provides automatic language identification using n-gram based text categorization.
-//! It supports 55 languages out of the box and allows for custom language profile loading.
+//! It supports 56 languages out of the box and allows for custom language profile loading.
 //!
 //! ## Features
 //!
-//! - **55 built-in languages** with prepared profiles (copied from Python library version)
+//! - **56 built-in languages** with embedded profiles (55 from the Python library plus Uzbek)
 //! - **High accuracy** for texts longer than 20-50 characters according to original presentation (49 languages with 99.8% precision): <https://www.slideshare.net/slideshow/language-detection-library-for-java/6014274>
 //! - **Non-deterministic algorithm** with optional seeding for reproducibility
 //! - **Extensible** - add custom language profiles
@@ -36,6 +36,8 @@
 //! - [`detector`] - Core language detection logic
 //! - [`language`] - Language probability data structure
 //! - [`utils`] - Utility modules for profiles, n-grams, and Unicode handling
+mod default_profiles;
+
 pub mod detector;
 pub mod detector_factory;
 pub mod language;
