@@ -1,7 +1,4 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::path::Path;
 use std::sync::Mutex;
 
 lazy_static::lazy_static! {
@@ -15,18 +12,14 @@ pub struct Messages {
 impl Messages {
 	pub fn new() -> Self {
 		let mut messages = HashMap::new();
-		let filename = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/utils/messages.properties");
-		if let Ok(file) = File::open(&filename) {
-			let reader = BufReader::new(file);
-			for line in reader.lines().flatten() {
-				let line = line.trim();
-				if line.is_empty() || line.starts_with('#') {
-					continue;
-				}
-				let mut parts = line.splitn(2, '=');
-				if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
-					messages.insert(key.to_string(), Self::parse_unicode_escapes(value));
-				}
+		for line in include_str!("messages.properties").lines() {
+			let line = line.trim();
+			if line.is_empty() || line.starts_with('#') {
+				continue;
+			}
+			let mut parts = line.splitn(2, '=');
+			if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
+				messages.insert(key.to_string(), Self::parse_unicode_escapes(value));
 			}
 		}
 		Messages { messages }
@@ -39,7 +32,7 @@ impl Messages {
 		while let Some(c) = chars.next() {
 			if c == '\\' {
 				if let Some('u') = chars.peek() {
-					chars.next(); // consume 'u'
+					chars.next();
 					let mut hex = String::new();
 					for _ in 0..4 {
 						if let Some(h) = chars.next() {
